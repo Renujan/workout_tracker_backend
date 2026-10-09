@@ -8,10 +8,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
+from .views import HealthCheckView
 
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
+
+    # Health check
+    path('api/v1/health/', HealthCheckView.as_view(), name='health-check'),
 
     # JWT token endpoints
     path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
