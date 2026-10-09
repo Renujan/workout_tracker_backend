@@ -8,13 +8,24 @@ Django REST Framework backend for the ProgressX fitness tracking application.
 
 ```
 workout_tracker_backend/
-├── core/               # Django project config (settings, urls, wsgi, asgi)
-├── users/              # User profiles, authentication (JWT)
-├── workouts/           # Workout plans, sessions, sets
-├── exercises/          # Exercise library, personal records
-├── nutrition/          # Macro tracking, meal logs
-├── progress/           # Body measurements, progress photos, insights
+├── core/                         # Django project config
+│   ├── settings.py               # Dev settings (DRF, JWT, CORS, all apps)
+│   ├── settings_prod.py          # Production overrides (env vars, PostgreSQL)
+│   ├── urls.py                   # Root URL conf (/api/v1/)
+│   ├── views.py                  # Health-check endpoint
+│   └── management/commands/
+│       └── create_admin.py       # Auto-create superuser command
+│
+├── users/                        # Auth + user profiles
+├── exercises/                    # Exercise library + history + PRs
+│   └── management/commands/
+│       └── seed_data.py          # Full demo data seeder
+├── workouts/                     # Workout plans, sessions, sets, history
+├── nutrition/                    # Daily macros + meal logging
+├── progress/                     # Body measurements, goals, achievements, insights
+│
 ├── requirements.txt
+├── .env.example
 └── manage.py
 ```
 
@@ -29,31 +40,29 @@ workout_tracker_backend/
 | Auth | JWT via `djangorestframework-simplejwt` |
 | CORS | `django-cors-headers` |
 | Filtering | `django-filter` |
-| Database | SQLite (dev) → PostgreSQL (prod) |
+| Database | SQLite (dev) → PostgreSQL (prod via DATABASE_URL) |
 | Image upload | Pillow |
 
 ---
 
 ## 📅 Development Log
 
-### Day 1 — 2026-10-09 (Today)
-- ✅ Initialized Django project (`core/`)
-- ✅ Created 5 apps: `users`, `workouts`, `exercises`, `nutrition`, `progress`
-- ✅ Configured CORS, JWT, DRF settings
-- ✅ Built `users` app: `UserProfile` model, registration, login, JWT auth endpoints
-- ✅ Built `exercises` app: `Exercise`, `PersonalRecord` models + serializers + ViewSets
-- ✅ Built `workouts` app: `WorkoutPlan`, `WorkoutSession`, `WorkoutSet`, `CompletedWorkout` models
-- ✅ Built `nutrition` app: `DailyNutrition`, `MealItem` models + serializers
-- ✅ Built `progress` app: `BodyMeasurement`, `ProgressPhoto`, `FitnessGoal`, `Achievement`, `FitnessInsight` models
-- ✅ Wired all app URLs into `core/urls.py` under `/api/v1/`
-- ✅ Added seed management command (`python manage.py seed_data`)
-- ✅ Full README documentation
+### Day 1 — 2026-10-09
+- ✅ Initialized Django project (`core/`) with DRF, JWT, CORS, django-filter
+- ✅ Built 5 Django apps: `users`, `workouts`, `exercises`, `nutrition`, `progress`
+- ✅ 14 models, 13 serializers, 11 API ViewSets
+- ✅ Production settings split (`settings_prod.py`) with env var support
+- ✅ Seed command: `python manage.py seed_data` (demo user + full dataset)
+- ✅ Health check: `GET /api/v1/health/`
+- ✅ 21 API tests — all passing
+- ✅ `python manage.py check` — 0 issues
+- ✅ 13 git commits pushed to GitHub
 
 ### Coming Up (Day 2+)
-- 🔜 Wire frontend service layer to live DRF endpoints
-- 🔜 Implement filtering, search, and pagination
-- 🔜 Add PostgreSQL support + environment config
-- 🔜 Deploy to Railway / Render
+- 🔜 Wire React service layer to live DRF endpoints (replace mock data)
+- 🔜 JWT axios interceptors in frontend
+- 🔜 PostgreSQL + Railway/Render deployment
+- 🔜 Django Channels for real-time rest timer WebSocket
 
 ---
 
@@ -66,8 +75,8 @@ cd workout_tracker_backend
 
 # 2. Create virtual environment
 python -m venv venv
-venv\Scripts\activate   # Windows
-# source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS/Linux
 
 # 3. Install dependencies
 pip install -r requirements.txt
@@ -75,11 +84,18 @@ pip install -r requirements.txt
 # 4. Run migrations
 python manage.py migrate
 
-# 5. Seed demo data (optional)
+# 5. Seed demo data
 python manage.py seed_data
+# Creates: renujan / gym12345
 
-# 6. Start development server
+# 6. (Optional) Create admin superuser
+python manage.py create_admin
+# Creates: admin / admin1234
+
+# 7. Start development server
 python manage.py runserver
+# API: http://localhost:8000/api/v1/
+# Admin: http://localhost:8000/admin/
 ```
 
 ---
@@ -88,22 +104,35 @@ python manage.py runserver
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/auth/register/` | Register new user |
-| POST | `/api/v1/auth/login/` | Login → JWT tokens |
+| GET | `/api/v1/health/` | Health check (no auth) |
+| POST | `/api/v1/auth/register/` | Register → JWT pair |
+| POST | `/api/v1/auth/login/` | Login → JWT pair |
+| POST | `/api/v1/auth/logout/` | Blacklist refresh token |
 | POST | `/api/v1/auth/token/refresh/` | Refresh access token |
-| GET/PUT | `/api/v1/users/profile/` | Get / update user profile |
-| GET | `/api/v1/exercises/` | List all exercises |
-| GET | `/api/v1/exercises/{id}/` | Exercise detail |
+| GET/PUT | `/api/v1/users/profile/` | Own user profile |
+| GET | `/api/v1/exercises/` | Exercise library (filter/search) |
+| GET | `/api/v1/exercises/{id}/` | Exercise detail + history |
 | GET/POST | `/api/v1/exercises/records/` | Personal records |
+| GET/POST | `/api/v1/exercises/history/` | Exercise history points |
 | GET/POST | `/api/v1/workouts/plans/` | Workout plans |
-| GET/POST | `/api/v1/workouts/sessions/` | Workout sessions |
+| GET/POST | `/api/v1/workouts/sessions/` | Active sessions |
 | GET/POST | `/api/v1/workouts/history/` | Completed workouts |
 | GET/POST | `/api/v1/nutrition/daily/` | Daily nutrition log |
 | GET/POST | `/api/v1/nutrition/meals/` | Meal items |
 | GET/POST | `/api/v1/progress/measurements/` | Body measurements |
+| GET/POST | `/api/v1/progress/photos/` | Progress photos |
 | GET/POST | `/api/v1/progress/goals/` | Fitness goals |
 | GET/POST | `/api/v1/progress/achievements/` | Achievements |
 | GET | `/api/v1/progress/insights/` | Fitness insights |
+
+---
+
+## 🧪 Running Tests
+
+```bash
+python manage.py test users exercises workouts nutrition
+# Ran 21 tests — OK
+```
 
 ---
 
