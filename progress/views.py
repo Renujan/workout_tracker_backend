@@ -1,0 +1,75 @@
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .models import BodyMeasurement, ProgressPhoto, FitnessGoal, Achievement, FitnessInsight
+from .serializers import (
+    BodyMeasurementSerializer, ProgressPhotoSerializer,
+    FitnessGoalSerializer, AchievementSerializer, FitnessInsightSerializer,
+)
+
+
+class BodyMeasurementViewSet(viewsets.ModelViewSet):
+    serializer_class = BodyMeasurementSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['date']
+    ordering_fields = ['date', 'weight_kg']
+
+    def get_queryset(self):
+        return BodyMeasurement.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class ProgressPhotoViewSet(viewsets.ModelViewSet):
+    serializer_class = ProgressPhotoSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['category']
+    ordering_fields = ['date']
+
+    def get_queryset(self):
+        return ProgressPhoto.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class FitnessGoalViewSet(viewsets.ModelViewSet):
+    serializer_class = FitnessGoalSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['category', 'is_completed']
+    ordering_fields = ['deadline', 'created_at']
+
+    def get_queryset(self):
+        return FitnessGoal.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class AchievementViewSet(viewsets.ModelViewSet):
+    serializer_class = AchievementSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['unlocked', 'category']
+
+    def get_queryset(self):
+        return Achievement.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class FitnessInsightViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = FitnessInsightSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['type']
+    ordering_fields = ['date']
+
+    def get_queryset(self):
+        return FitnessInsight.objects.filter(user=self.request.user)
