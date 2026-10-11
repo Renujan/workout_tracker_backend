@@ -151,7 +151,26 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
 
 
 class CompletedWorkoutSerializer(serializers.ModelSerializer):
+    exercises = serializers.SerializerMethodField()
+
     class Meta:
         model = CompletedWorkout
-        fields = ['id', 'session', 'name', 'category', 'date',
-                  'duration_minutes', 'total_volume_kg', 'total_sets']
+        fields = [
+            'id', 'session', 'name', 'category', 'date',
+            'duration_minutes', 'total_volume_kg', 'total_sets', 'exercises'
+        ]
+
+    def get_exercises(self, obj):
+        if obj.session:
+            result = []
+            for se in obj.session.exercises.all().prefetch_related('sets'):
+                completed_sets = se.sets.filter(completed=True)
+                if completed_sets.exists():
+                    max_w = max((s.weight_kg for s in completed_sets), default=0)
+                    result.append({
+                        'name': se.exercise.name,
+                        'sets': completed_sets.count(),
+                        'max_weight_kg': max_w,
+                    })
+            return result
+        return []
