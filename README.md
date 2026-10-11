@@ -114,9 +114,13 @@ python manage.py runserver
 | GET | `/api/v1/exercises/{id}/` | Exercise detail + history |
 | GET/POST | `/api/v1/exercises/records/` | Personal records |
 | GET/POST | `/api/v1/exercises/history/` | Exercise history points |
-| GET/POST | `/api/v1/workouts/plans/` | Workout plans |
-| GET/POST | `/api/v1/workouts/sessions/` | Active sessions |
-| GET/POST | `/api/v1/workouts/history/` | Completed workouts |
+| GET/POST | `/api/v1/workouts/plans/` | Workout plans (nested writable exercises) |
+| GET/POST | `/api/v1/workouts/sessions/` | Workout sessions (auto-populates from plan) |
+| GET | `/api/v1/workouts/sessions/active/` | Get current active workout session |
+| POST | `/api/v1/workouts/sessions/{id}/complete/` | Complete workout (auto volume, PRs, streak, achievements) |
+| POST | `/api/v1/workouts/sessions/{id}/add-exercise/` | Dynamically add exercise to active session |
+| GET/PATCH | `/api/v1/workouts/sets/{id}/` | Real-time set updates (weight, reps, RPE, completed) |
+| GET/POST | `/api/v1/workouts/history/` | Completed workouts history (with exercise breakdown) |
 | GET/POST | `/api/v1/nutrition/daily/` | Daily nutrition log |
 | GET/POST | `/api/v1/nutrition/meals/` | Meal items |
 | GET/POST | `/api/v1/progress/measurements/` | Body measurements |
@@ -130,8 +134,8 @@ python manage.py runserver
 ## 🧪 Running Tests
 
 ```bash
-python manage.py test users exercises workouts nutrition
-# Ran 21 tests — OK
+python manage.py test
+# Ran 27 tests — OK
 ```
 
 ---
