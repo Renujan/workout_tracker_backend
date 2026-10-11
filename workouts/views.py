@@ -2,8 +2,11 @@ from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import WorkoutPlan, WorkoutSession, CompletedWorkout
-from .serializers import WorkoutPlanSerializer, WorkoutSessionSerializer, CompletedWorkoutSerializer
+from .models import WorkoutPlan, WorkoutSession, CompletedWorkout, WorkoutSet
+from .serializers import (
+    WorkoutPlanSerializer, WorkoutSessionSerializer,
+    CompletedWorkoutSerializer, WorkoutSetSerializer
+)
 
 
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
@@ -36,6 +39,20 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class WorkoutSetViewSet(viewsets.ModelViewSet):
+    """
+    Direct CRUD for sets within active workout sessions.
+    Enables instant set updates (weight, reps, RPE, completed status) during workouts.
+    """
+    serializer_class = WorkoutSetSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return WorkoutSet.objects.filter(
+            session_exercise__session__user=self.request.user
+        )
 
 
 class CompletedWorkoutViewSet(viewsets.ModelViewSet):
