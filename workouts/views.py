@@ -13,6 +13,10 @@ from .serializers import (
     WorkoutPlanSerializer, WorkoutSessionSerializer,
     CompletedWorkoutSerializer, WorkoutSetSerializer
 )
+from .services import (
+    complete_workout_session, update_user_profile_stats,
+    evaluate_and_unlock_achievements
+)
 
 
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
@@ -53,6 +57,19 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         if not active_session:
             return Response(None, status=status.HTTP_200_OK)
         return Response(self.get_serializer(active_session).data)
+
+    @action(detail=True, methods=['post'], url_path='complete')
+    def complete(self, request, pk=None):
+        """
+        POST /api/v1/workouts/sessions/{id}/complete/
+        Finalizes active workout, calculates volume/PRs, unlocks achievements, and returns summary.
+        """
+        session = self.get_object()
+        completed_workout = complete_workout_session(session)
+        return Response(
+            CompletedWorkoutSerializer(completed_workout).data,
+            status=status.HTTP_200_OK
+        )
 
     @action(detail=True, methods=['post'], url_path='add-exercise')
     def add_exercise(self, request, pk=None):
@@ -116,7 +133,11 @@ class CompletedWorkoutViewSet(viewsets.ModelViewSet):
     ordering_fields = ['date', 'total_volume_kg']
 
     def get_queryset(self):
-        return CompletedWorkout.objects.filter(user=self.request.user)
+        return CompletedWorkout.objects.filter(user=self.request.user).prefetch_related(
+            'session__exercises__sets', 'session__exercises__exercise'
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+        update_user_profile_stats(self.request.user)
+        evaluate_and_unlock_achievements(self.request.user)
