@@ -85,12 +85,69 @@ class SessionExerciseSerializer(serializers.ModelSerializer):
 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
-    exercises = SessionExerciseSerializer(many=True, read_only=True)
+    exercises = SessionExerciseSerializer(many=True, required=False)
 
     class Meta:
         model = WorkoutSession
-        fields = ['id', 'plan', 'name', 'started_at', 'elapsed_seconds',
-                  'is_completed', 'completed_at', 'exercises']
+        fields = [
+            'id', 'plan', 'name', 'started_at', 'elapsed_seconds',
+            'is_completed', 'completed_at', 'exercises'
+        ]
+
+    def create(self, validated_data):
+        exercises_data = validated_data.pop('exercises', [])
+        plan = validated_data.get('plan', None)
+        session = WorkoutSession.objects.create(**validated_data)
+
+        if exercises_data:
+            for idx, ex_data in enumerate(exercises_data):
+                sets_data = ex_data.pop('sets', [])
+                if 'order' not in ex_data:
+                    ex_data['order'] = idx
+                session_ex = SessionExercise.objects.create(session=session, **ex_data)
+                for s_idx, set_data in enumerate(sets_data, start=1):
+                    if 'set_number' not in set_data:
+                        set_data['set_number'] = s_idx
+                    WorkoutSet.objects.create(session_exercise=session_ex, **set_data)
+        elif plan:
+            # Auto-populate session exercises & sets from plan template
+            for pe in plan.exercises.all().order_by('order'):
+                se = SessionExercise.objects.create(
+                    session=session,
+                    exercise=pe.exercise,
+                    order=pe.order,
+                    previous_performance='',
+                )
+                for s_idx in range(1, pe.target_sets + 1):
+                    WorkoutSet.objects.create(
+                        session_exercise=se,
+                        set_number=s_idx,
+                        weight_kg=pe.target_weight_kg,
+                        reps=0,
+                        completed=False,
+                        target_weight_kg=pe.target_weight_kg,
+                        target_reps=pe.target_reps,
+                    )
+        return session
+
+    def update(self, instance, validated_data):
+        exercises_data = validated_data.pop('exercises', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if exercises_data is not None:
+            instance.exercises.all().delete()
+            for idx, ex_data in enumerate(exercises_data):
+                sets_data = ex_data.pop('sets', [])
+                if 'order' not in ex_data:
+                    ex_data['order'] = idx
+                session_ex = SessionExercise.objects.create(session=instance, **ex_data)
+                for s_idx, set_data in enumerate(sets_data, start=1):
+                    if 'set_number' not in set_data:
+                        set_data['set_number'] = s_idx
+                    WorkoutSet.objects.create(session_exercise=session_ex, **set_data)
+        return instance
 
 
 class CompletedWorkoutSerializer(serializers.ModelSerializer):
