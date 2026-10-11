@@ -61,19 +61,27 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
 class WorkoutSetSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkoutSet
-        fields = ['id', 'set_number', 'weight_kg', 'reps', 'rpe',
-                  'completed', 'is_pr', 'target_weight_kg', 'target_reps']
+        fields = [
+            'id', 'session_exercise', 'set_number', 'weight_kg', 'reps', 'rpe',
+            'completed', 'is_pr', 'target_weight_kg', 'target_reps'
+        ]
+        extra_kwargs = {
+            'session_exercise': {'required': False, 'read_only': True}
+        }
 
 
 class SessionExerciseSerializer(serializers.ModelSerializer):
-    sets = WorkoutSetSerializer(many=True, read_only=True)
+    sets = WorkoutSetSerializer(many=True, required=False)
     exercise_name = serializers.CharField(source='exercise.name', read_only=True)
     muscle_group = serializers.CharField(source='exercise.muscle_group', read_only=True)
+    exercise = serializers.PrimaryKeyRelatedField(queryset=Exercise.objects.all())
 
     class Meta:
         model = SessionExercise
-        fields = ['id', 'exercise', 'exercise_name', 'muscle_group',
-                  'order', 'previous_performance', 'sets']
+        fields = [
+            'id', 'exercise', 'exercise_name', 'muscle_group',
+            'order', 'previous_performance', 'sets'
+        ]
 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
