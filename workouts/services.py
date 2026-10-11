@@ -235,3 +235,52 @@ def evaluate_and_unlock_achievements(user):
                 achievement.unlocked_at = now
                 achievement.progress = max_prog
             achievement.save()
+
+
+@transaction.atomic
+def complete_workout_session(session):
+    """
+    Completes an active WorkoutSession, persists CompletedWorkout,
+    updates user profile metrics, detects PRs, and updates achievements.
+    """
+    user = session.user
+    session.is_completed = True
+    session.completed_at = timezone.now()
+    session.save(update_fields=['is_completed', 'completed_at'])
+
+    # Compute total volume and sets from completed sets
+    completed_sets = WorkoutSet.objects.filter(
+        session_exercise__session=session, completed=True
+    )
+    total_volume = sum(s.weight_kg * s.reps for s in completed_sets)
+    total_sets = completed_sets.count()
+    duration_minutes = max(1, round(session.elapsed_seconds / 60))
+
+    category = 'Full Body'
+    if session.plan and session.plan.category:
+        category = session.plan.category
+
+    # Create or update CompletedWorkout
+    completed_workout, _ = CompletedWorkout.objects.update_or_create(
+        session=session,
+        defaults={
+            'user': user,
+            'name': session.name,
+            'category': category,
+            'date': timezone.now().date(),
+            'duration_minutes': duration_minutes,
+            'total_volume_kg': round(total_volume, 2),
+            'total_sets': total_sets,
+        },
+    )
+
+    # Detect & Record PRs
+    check_and_record_prs(user, session)
+
+    # Recalculate User Profile stats & streaks
+    update_user_profile_stats(user)
+
+    # Check and unlock achievements
+    evaluate_and_unlock_achievements(user)
+
+    return completed_workout
