@@ -8,7 +8,8 @@ from django.db import transaction
 from django.utils import timezone
 from users.models import UserProfile
 from exercises.models import ExerciseHistory, PersonalRecord
-from .models import CompletedWorkout
+from progress.models import Achievement
+from .models import CompletedWorkout, WorkoutSet
 
 
 def calculate_user_streaks(user):
@@ -145,3 +146,92 @@ def check_and_record_prs(user, session):
         )
 
     return new_prs
+
+
+def evaluate_and_unlock_achievements(user):
+    """
+    Evaluates milestone and consistency rules against user stats and unlocks achievements.
+    """
+    profile = getattr(user, 'profile', None)
+    if not profile:
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    now = timezone.now()
+
+    # Define rules: (title, description, category, icon, condition_fn, current_val_fn, max_prog)
+    rules = [
+        (
+            'First Workout',
+            'Log your first workout session',
+            'milestone',
+            'Dumbbell',
+            profile.total_workouts >= 1,
+            min(1, profile.total_workouts),
+            1,
+        ),
+        (
+            '10 Workouts',
+            'Complete 10 workout sessions',
+            'milestone',
+            'Trophy',
+            profile.total_workouts >= 10,
+            min(10, profile.total_workouts),
+            10,
+        ),
+        (
+            'Century Club',
+            'Lift 100kg+ on any compound exercise',
+            'strength',
+            'Zap',
+            WorkoutSet.objects.filter(
+                session_exercise__session__user=user,
+                completed=True,
+                weight_kg__gte=100,
+            ).exists(),
+            100 if WorkoutSet.objects.filter(
+                session_exercise__session__user=user,
+                completed=True,
+                weight_kg__gte=100,
+            ).exists() else 0,
+            100,
+        ),
+        (
+            'Iron Will — 7 Days',
+            'Maintain a 7-day workout streak',
+            'consistency',
+            'Flame',
+            profile.current_streak >= 7,
+            min(7, profile.current_streak),
+            7,
+        ),
+        (
+            'PR Crusher',
+            'Set 5 or more Personal Records',
+            'strength',
+            'Award',
+            profile.total_prs >= 5,
+            min(5, profile.total_prs),
+            5,
+        ),
+    ]
+
+    for title, desc, cat, icon, condition_met, cur_prog, max_prog in rules:
+        achievement, created = Achievement.objects.get_or_create(
+            user=user,
+            title=title,
+            defaults={
+                'description': desc,
+                'category': cat,
+                'icon_name': icon,
+                'max_progress': max_prog,
+                'progress': cur_prog,
+                'unlocked': False,
+            },
+        )
+        if not achievement.unlocked:
+            achievement.progress = cur_prog
+            if condition_met:
+                achievement.unlocked = True
+                achievement.unlocked_at = now
+                achievement.progress = max_prog
+            achievement.save()
