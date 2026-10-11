@@ -7,7 +7,7 @@ import datetime
 from django.db import transaction
 from django.utils import timezone
 from users.models import UserProfile
-from exercises.models import PersonalRecord
+from exercises.models import ExerciseHistory, PersonalRecord
 from .models import CompletedWorkout
 
 
@@ -74,3 +74,74 @@ def update_user_profile_stats(user, added_volume_kg=0, added_sets=0):
 
     profile.save()
     return profile
+
+
+def check_and_record_prs(user, session):
+    """
+    Inspects completed sets in a session to identify if any Personal Records were broken.
+    Creates PersonalRecord instances and updates ExerciseHistory accordingly.
+    Returns list of newly created PRs.
+    """
+    today = timezone.now().date()
+    new_prs = []
+
+    for se in session.exercises.all():
+        completed_sets = se.sets.filter(completed=True)
+        if not completed_sets.exists():
+            continue
+
+        # Find best set by weight lifted
+        best_set = completed_sets.order_by('-weight_kg', '-reps').first()
+        if not best_set or best_set.weight_kg <= 0:
+            continue
+
+        # Look up existing best strength PR
+        existing_pr = (
+            PersonalRecord.objects.filter(
+                user=user, exercise=se.exercise, category='strength'
+            )
+            .order_by('-weight_kg')
+            .first()
+        )
+
+        is_new_pr = False
+        prev_weight = 0.0
+        prev_reps = 0
+        improvement = best_set.weight_kg
+
+        if not existing_pr:
+            is_new_pr = True
+        elif best_set.weight_kg > existing_pr.weight_kg:
+            is_new_pr = True
+            prev_weight = existing_pr.weight_kg
+            prev_reps = existing_pr.reps
+            improvement = round(best_set.weight_kg - existing_pr.weight_kg, 2)
+
+        if is_new_pr:
+            pr = PersonalRecord.objects.create(
+                user=user,
+                exercise=se.exercise,
+                weight_kg=best_set.weight_kg,
+                reps=best_set.reps,
+                previous_weight_kg=prev_weight,
+                previous_reps=prev_reps,
+                improvement_kg=improvement,
+                date=today,
+                category='strength',
+            )
+            best_set.is_pr = True
+            best_set.save(update_fields=['is_pr'])
+            new_prs.append(pr)
+
+        # Update ExerciseHistory entry for today
+        ExerciseHistory.objects.update_or_create(
+            user=user,
+            exercise=se.exercise,
+            date=today,
+            defaults={
+                'weight_kg': best_set.weight_kg,
+                'reps': best_set.reps,
+            },
+        )
+
+    return new_prs
