@@ -6,6 +6,8 @@ personal records (PR) detection, user statistics aggregation, and achievements.
 import datetime
 from django.db import transaction
 from django.utils import timezone
+from users.models import UserProfile
+from exercises.models import PersonalRecord
 from .models import CompletedWorkout
 
 
@@ -33,3 +35,42 @@ def calculate_user_streaks(user):
         current_date -= datetime.timedelta(days=1)
 
     return current_streak
+
+
+def update_user_profile_stats(user, added_volume_kg=0, added_sets=0):
+    """
+    Recalculates lifetime totals, streaks, and weekly completion metrics on UserProfile.
+    """
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    # Lifetime workouts, volume, and sets
+    all_workouts = CompletedWorkout.objects.filter(user=user)
+    profile.total_workouts = all_workouts.count()
+    profile.total_volume_kg = sum(w.total_volume_kg for w in all_workouts)
+    profile.total_sets = sum(w.total_sets for w in all_workouts)
+
+    # PR count
+    profile.total_prs = PersonalRecord.objects.filter(user=user).count()
+
+    # Streaks
+    curr_streak = calculate_user_streaks(user)
+    profile.current_streak = curr_streak
+    if curr_streak > profile.longest_streak:
+        profile.longest_streak = curr_streak
+
+    # Weekly targets (Monday to Sunday)
+    today = timezone.now().date()
+    start_of_week = today - datetime.timedelta(days=today.weekday())
+    weekly_completed = CompletedWorkout.objects.filter(
+        user=user, date__gte=start_of_week, date__lte=today
+    ).count()
+
+    profile.weekly_workouts_completed = weekly_completed
+    if profile.weekly_workouts_target > 0:
+        profile.weekly_completion = min(
+            100.0,
+            round((weekly_completed / profile.weekly_workouts_target) * 100.0, 1),
+        )
+
+    profile.save()
+    return profile
