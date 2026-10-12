@@ -1,6 +1,9 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+
 
 from .models import BodyMeasurement, ProgressPhoto, FitnessGoal, Achievement, FitnessInsight
 from .serializers import (
@@ -49,6 +52,19 @@ class FitnessGoalViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def evaluate(self, request):
+        """POST /api/v1/progress/goals/evaluate/ — evaluate goal progression and mark completed."""
+        from .services import evaluate_fitness_goals
+        count = evaluate_fitness_goals(request.user)
+        goals = self.get_queryset()
+        serializer = self.get_serializer(goals, many=True)
+        return Response({
+            'evaluated_count': count,
+            'goals': serializer.data
+        }, status=status.HTTP_200_OK)
+
 
 
 class AchievementViewSet(viewsets.ModelViewSet):

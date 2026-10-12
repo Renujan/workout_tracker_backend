@@ -74,3 +74,31 @@ def _get_bmi_category(bmi):
     elif bmi < 30.0:
         return 'Overweight'
     return 'Obese'
+
+
+def evaluate_fitness_goals(user):
+    """
+    Evaluates and updates progress on all active FitnessGoals for a user.
+    """
+    from .models import FitnessGoal
+    profile = getattr(user, 'profile', None)
+    goals = FitnessGoal.objects.filter(user=user, is_completed=False)
+    evaluated_count = 0
+
+    for goal in goals:
+        if goal.category == 'workout' and profile:
+            goal.current_value = float(profile.total_workouts)
+            if goal.current_value >= goal.target_value:
+                goal.is_completed = True
+            goal.save()
+            evaluated_count += 1
+        elif goal.category == 'weight' and profile and profile.current_weight_kg:
+            goal.current_value = float(profile.current_weight_kg)
+            # If target reached
+            if goal.target_value <= goal.current_value and profile.target_weight_kg >= goal.target_value:
+                goal.is_completed = True
+            goal.save()
+            evaluated_count += 1
+
+    return evaluated_count
+
