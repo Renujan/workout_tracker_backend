@@ -73,3 +73,25 @@ class FitnessInsightViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return FitnessInsight.objects.filter(user=self.request.user)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .services import calculate_body_composition_trends
+
+
+class BodyCompositionTrendsView(APIView):
+    """GET /api/v1/progress/analytics/trends/ — body composition trends, BMI, and weight delta."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        height = request.query_params.get('height_cm', 175.0)
+        try:
+            height = float(height)
+        except (ValueError, TypeError):
+            height = 175.0
+
+        trends = calculate_body_composition_trends(request.user, height_cm=height)
+        return Response(trends, status=status.HTTP_200_OK)
+

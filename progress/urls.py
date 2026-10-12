@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     BodyMeasurementViewSet, ProgressPhotoViewSet,
     FitnessGoalViewSet, AchievementViewSet, FitnessInsightViewSet,
+    BodyCompositionTrendsView
 )
 
 router = DefaultRouter()
@@ -13,5 +14,7 @@ router.register(r'achievements', AchievementViewSet, basename='achievement')
 router.register(r'insights', FitnessInsightViewSet, basename='fitness-insight')
 
 urlpatterns = [
+    path('analytics/trends/', BodyCompositionTrendsView.as_view(), name='progress-analytics-trends'),
     path('', include(router.urls)),
 ]
+
