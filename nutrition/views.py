@@ -71,3 +71,27 @@ class MacroRecommendationView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+from django.utils import timezone
+import datetime
+from .services import get_daily_macro_summary
+
+
+class DailyMacroSummaryView(APIView):
+    """GET /api/v1/nutrition/summary/daily/?date=YYYY-MM-DD — get daily consumed macros vs target."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        if date_str:
+            try:
+                query_date = datetime.date.fromisoformat(date_str)
+            except ValueError:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            query_date = timezone.now().date()
+
+        summary = get_daily_macro_summary(request.user, query_date)
+        return Response(summary, status=status.HTTP_200_OK)
+
+

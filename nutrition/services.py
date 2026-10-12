@@ -63,3 +63,46 @@ def calculate_tdee_and_macros(
         'goal': goal,
         'activity_level': activity_level,
     }
+
+
+def get_daily_macro_summary(user, query_date):
+    """
+    Computes consumed macros vs daily targets from logged MealItems and DailyNutrition.
+    """
+    from .models import MealItem, DailyNutrition
+    meals = MealItem.objects.filter(user=user, date=query_date)
+
+    consumed_cals = sum(m.calories for m in meals)
+    consumed_protein = sum(m.protein_grams for m in meals)
+    consumed_carbs = sum(m.carbs_grams for m in meals)
+    consumed_fat = sum(m.fat_grams for m in meals)
+
+    daily_record = DailyNutrition.objects.filter(user=user, date=query_date).first()
+    target_cals = daily_record.target_calories if daily_record else 2400
+    target_protein = daily_record.target_protein_grams if daily_record else 160
+    target_carbs = daily_record.target_carbs_grams if daily_record else 250
+    target_fat = daily_record.target_fat_grams if daily_record else 70
+
+    remaining_cals = target_cals - consumed_cals
+    protein_pct = round((consumed_protein / max(1, target_protein)) * 100, 1)
+
+    return {
+        'date': query_date.isoformat(),
+        'meals_logged': meals.count(),
+        'consumed': {
+            'calories': consumed_cals,
+            'protein_grams': round(consumed_protein, 1),
+            'carbs_grams': round(consumed_carbs, 1),
+            'fat_grams': round(consumed_fat, 1),
+        },
+        'targets': {
+            'calories': target_cals,
+            'protein_grams': target_protein,
+            'carbs_grams': target_carbs,
+            'fat_grams': target_fat,
+        },
+        'remaining_calories': remaining_cals,
+        'protein_adherence_percentage': min(100.0, protein_pct),
+        'is_calorie_deficit': consumed_cals < target_cals,
+    }
+
