@@ -16,7 +16,8 @@ from .serializers import (
 )
 from .services import (
     complete_workout_session, update_user_profile_stats,
-    evaluate_and_unlock_achievements, calculate_one_rep_max
+    evaluate_and_unlock_achievements, calculate_one_rep_max,
+    duplicate_workout_plan
 )
 
 
@@ -34,6 +35,16 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def duplicate(self, request, pk=None):
+        """POST /api/v1/workouts/plans/{id}/duplicate/ — clone plan and its exercises."""
+        plan = self.get_object()
+        new_name = request.data.get('name')
+        new_plan = duplicate_workout_plan(request.user, plan.id, new_name=new_name)
+        serializer = self.get_serializer(new_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 class WorkoutSessionViewSet(viewsets.ModelViewSet):

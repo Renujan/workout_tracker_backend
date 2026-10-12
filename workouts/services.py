@@ -326,3 +326,35 @@ def calculate_one_rep_max(weight_kg, reps, formula='epley'):
         'rep_table': rep_table,
     }
 
+
+def duplicate_workout_plan(user, plan_id, new_name=None):
+    """
+    Clones an existing WorkoutPlan including all associated PlanExercises.
+    Assigns the cloned plan to the requesting user.
+    """
+    from .models import WorkoutPlan, PlanExercise
+    plan = WorkoutPlan.objects.get(pk=plan_id, user=user)
+    name = new_name or f'{plan.name} (Copy)'
+
+    with transaction.atomic():
+        new_plan = WorkoutPlan.objects.create(
+            user=user,
+            name=name,
+            category=plan.category,
+            estimated_minutes=plan.estimated_minutes,
+            image_url=plan.image_url,
+            is_active=False,
+        )
+        for pe in plan.exercises.all():
+            PlanExercise.objects.create(
+                plan=new_plan,
+                exercise=pe.exercise,
+                order=pe.order,
+                target_sets=pe.target_sets,
+                target_reps=pe.target_reps,
+                target_weight_kg=pe.target_weight_kg,
+            )
+    return new_plan
+
+
+

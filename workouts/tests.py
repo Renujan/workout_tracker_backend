@@ -282,3 +282,30 @@ class WorkoutAPITestCase(TestCase):
         self.assertIn('rep_table', res.data)
         self.assertEqual(res.data['formula'], 'epley')
 
+    # ── Plan Duplicate ────────────────────────────────────────────────────────
+    def test_duplicate_workout_plan(self):
+        plan = WorkoutPlan.objects.create(
+            user=self.user,
+            name='Original Push Routine',
+            category='Push',
+            estimated_minutes=45,
+        )
+        PlanExercise.objects.create(
+            plan=plan,
+            exercise=self.bench,
+            order=1,
+            target_sets=3,
+            target_reps='8-12',
+            target_weight_kg=80.0
+        )
+        url = f'/api/v1/workouts/plans/{plan.id}/duplicate/'
+        res = self.client.post(url, {'name': 'Custom Cloned Plan'}, format='json')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data['name'], 'Custom Cloned Plan')
+        self.assertNotEqual(res.data['id'], plan.id)
+        # Verify exercises were cloned
+        self.assertEqual(len(res.data['exercises']), 1)
+
+
+
+
