@@ -69,3 +69,31 @@ class AuthAPITestCase(TestCase):
         res = self.client.get(self.profile_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data['username'], 'profileuser')
+
+    # ── Password Change ───────────────────────────────────────────────────────
+    def test_authenticated_user_can_change_password(self):
+        user = User.objects.create_user(username='pwduser', password='oldpass123')
+        self.client.force_authenticate(user=user)
+        url = '/api/v1/auth/password/change/'
+        payload = {
+            'old_password': 'oldpass123',
+            'new_password': 'newstrongpass456',
+            'new_password_confirm': 'newstrongpass456',
+        }
+        res = self.client.post(url, payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('newstrongpass456'))
+
+    def test_change_password_wrong_old_password_fails(self):
+        user = User.objects.create_user(username='pwduser2', password='oldpass123')
+        self.client.force_authenticate(user=user)
+        url = '/api/v1/auth/password/change/'
+        payload = {
+            'old_password': 'wrongpassword',
+            'new_password': 'newstrongpass456',
+            'new_password_confirm': 'newstrongpass456',
+        }
+        res = self.client.post(url, payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+

@@ -7,7 +7,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserProfile
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from .serializers import (
+    RegisterSerializer, LoginSerializer, UserSerializer,
+    PasswordChangeSerializer
+)
+
 
 
 class RegisterView(generics.CreateAPIView):
@@ -71,3 +75,19 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class PasswordChangeView(APIView):
+    """POST /api/v1/auth/password/change/ — change user password."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if not user.check_password(serializer.validated_data['old_password']):
+            return Response({'old_password': ['Incorrect current password.']}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+        return Response({'detail': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+
