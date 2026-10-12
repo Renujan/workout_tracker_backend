@@ -69,3 +69,29 @@ class NutritionAPITestCase(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data['count'], 1)
         self.assertEqual(res.data['results'][0]['name'], 'Eggs')
+
+    def test_macro_recommendations(self):
+        payload = {
+            'weight_kg': 80.0,
+            'height_cm': 180.0,
+            'age': 25,
+            'goal': 'maintain',
+        }
+        res = self.client.post('/api/v1/nutrition/recommendations/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('bmr', res.data)
+        self.assertIn('tdee', res.data)
+        self.assertIn('target_calories', res.data)
+        self.assertEqual(res.data['target_protein_g'], 160.0)
+
+    def test_daily_macro_summary(self):
+        from nutrition.models import MealItem
+        MealItem.objects.create(
+            user=self.user, date=self.today, category='Snack',
+            name='Protein Bar', calories=200, protein_grams=20, carbs_grams=25, fat_grams=5
+        )
+        res = self.client.get(f'/api/v1/nutrition/summary/daily/?date={self.today}')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['consumed']['calories'], 200)
+        self.assertEqual(res.data['consumed']['protein_grams'], 20.0)
+

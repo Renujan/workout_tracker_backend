@@ -109,25 +109,38 @@ python manage.py runserver
 | POST | `/api/v1/auth/login/` | Login → JWT pair |
 | POST | `/api/v1/auth/logout/` | Blacklist refresh token |
 | POST | `/api/v1/auth/token/refresh/` | Refresh access token |
+| POST | `/api/v1/auth/password/change/` | Change password with validation |
 | GET/PUT | `/api/v1/users/profile/` | Own user profile |
 | GET | `/api/v1/exercises/` | Exercise library (filter/search) |
+| GET | `/api/v1/exercises/categories/` | Exercise filter options matrix |
+| GET | `/api/v1/exercises/muscle_groups/` | Muscle groups count distribution |
 | GET | `/api/v1/exercises/{id}/` | Exercise detail + history |
 | GET/POST | `/api/v1/exercises/records/` | Personal records |
 | GET/POST | `/api/v1/exercises/history/` | Exercise history points |
 | GET/POST | `/api/v1/workouts/plans/` | Workout plans (nested writable exercises) |
+| POST | `/api/v1/workouts/plans/{id}/duplicate/` | Clone workout plan template and exercises |
 | GET/POST | `/api/v1/workouts/sessions/` | Workout sessions (auto-populates from plan) |
 | GET | `/api/v1/workouts/sessions/active/` | Get current active workout session |
 | POST | `/api/v1/workouts/sessions/{id}/complete/` | Complete workout (auto volume, PRs, streak, achievements) |
 | POST | `/api/v1/workouts/sessions/{id}/add-exercise/` | Dynamically add exercise to active session |
 | GET/PATCH | `/api/v1/workouts/sets/{id}/` | Real-time set updates (weight, reps, RPE, completed) |
 | GET/POST | `/api/v1/workouts/history/` | Completed workouts history (with exercise breakdown) |
+| GET | `/api/v1/workouts/history/export/` | Export workout history to CSV or JSON |
+| POST | `/api/v1/workouts/calculator/1rm/` | 1RM calculator (Epley, Brzycki, Lander) |
+| POST | `/api/v1/workouts/calculator/calories/` | Estimate calories burned via MET algorithm |
+| GET | `/api/v1/workouts/analytics/weekly-summary/` | Weekly workouts volume and consistency summary |
 | GET/POST | `/api/v1/nutrition/daily/` | Daily nutrition log |
 | GET/POST | `/api/v1/nutrition/meals/` | Meal items |
+| POST | `/api/v1/nutrition/recommendations/` | BMR, TDEE & macro targets calculator |
+| GET | `/api/v1/nutrition/summary/daily/` | Daily consumed vs target macro summary |
 | GET/POST | `/api/v1/progress/measurements/` | Body measurements |
+| GET | `/api/v1/progress/analytics/trends/` | Body composition trend analysis and BMI |
 | GET/POST | `/api/v1/progress/photos/` | Progress photos |
 | GET/POST | `/api/v1/progress/goals/` | Fitness goals |
+| POST | `/api/v1/progress/goals/evaluate/` | Auto-evaluate active fitness goals |
 | GET/POST | `/api/v1/progress/achievements/` | Achievements |
 | GET | `/api/v1/progress/insights/` | Fitness insights |
+| GET | `/api/v1/health/` | Health check with database latency ping |
 
 ---
 
@@ -135,7 +148,7 @@ python manage.py runserver
 
 ```bash
 python manage.py test
-# Ran 27 tests — OK
+# Ran 39 tests — OK (100% pass)
 ```
 
 ---
@@ -143,3 +156,4 @@ python manage.py test
 ## 🔗 Related Repository
 
 **Frontend**: [workout_tracker_frontend](https://github.com/Renujan/workout_tracker_frontend) — React + TypeScript + Vite
+
