@@ -76,3 +76,18 @@ class ExerciseAPITestCase(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         # Current user has no PRs yet
         self.assertEqual(res.data['count'], 0)
+
+    # ── Category & Muscle Group Actions ───────────────────────────────────────
+    def test_exercise_categories_action(self):
+        res = self.client.get('/api/v1/exercises/categories/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('muscle_groups', res.data)
+        self.assertIn('equipment', res.data)
+        self.assertIn('difficulty', res.data)
+        self.assertIn('Chest', res.data['muscle_groups'])
+
+    def test_exercise_muscle_groups_count_action(self):
+        res = self.client.get('/api/v1/exercises/muscle_groups/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(item['muscle_group'] == 'Chest' for item in res.data))
+
