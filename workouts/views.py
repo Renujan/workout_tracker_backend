@@ -17,8 +17,10 @@ from .serializers import (
 from .services import (
     complete_workout_session, update_user_profile_stats,
     evaluate_and_unlock_achievements, calculate_one_rep_max,
-    duplicate_workout_plan, calculate_estimated_calories_burned
+    duplicate_workout_plan, calculate_estimated_calories_burned,
+    get_weekly_workout_summary
 )
+
 
 
 
@@ -221,5 +223,15 @@ class CalorieEstimateView(APIView):
             'category': category,
             'estimated_calories_burned': calories
         }, status=status.HTTP_200_OK)
+
+
+class WeeklySummaryView(APIView):
+    """GET /api/v1/workouts/analytics/weekly-summary/ — weekly aggregation stats."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        summary = get_weekly_workout_summary(request.user)
+        return Response(summary, status=status.HTTP_200_OK)
+
 
 

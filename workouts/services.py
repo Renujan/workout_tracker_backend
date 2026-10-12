@@ -383,5 +383,48 @@ def calculate_estimated_calories_burned(user, duration_minutes, total_volume_kg=
     return round(base_calories)
 
 
+def get_weekly_workout_summary(user, reference_date=None):
+    """
+    Aggregates workout statistics for the week containing reference_date (defaults to today).
+    Week boundaries: Monday to Sunday.
+    """
+    ref_date = reference_date or timezone.now().date()
+    monday = ref_date - datetime.timedelta(days=ref_date.weekday())
+    sunday = monday + datetime.timedelta(days=6)
+
+    weekly_workouts = CompletedWorkout.objects.filter(
+        user=user, date__gte=monday, date__lte=sunday
+    )
+
+    total_volume = sum(w.total_volume_kg for w in weekly_workouts)
+    total_minutes = sum(w.duration_minutes for w in weekly_workouts)
+    total_sets = sum(w.total_sets for w in weekly_workouts)
+    count = weekly_workouts.count()
+
+    active_days = sorted(list(set(w.date.strftime('%a') for w in weekly_workouts)))
+    categories = {}
+    for w in weekly_workouts:
+        cat = w.category or 'Other'
+        categories[cat] = categories.get(cat, 0) + 1
+
+    profile = getattr(user, 'profile', None)
+    target = profile.weekly_workouts_target if profile else 4
+    adherence = round((count / max(1, target)) * 100, 1) if target else 0.0
+
+    return {
+        'week_start': monday.isoformat(),
+        'week_end': sunday.isoformat(),
+        'workouts_completed': count,
+        'weekly_workouts_target': target,
+        'adherence_percentage': min(100.0, adherence),
+        'total_volume_kg': round(total_volume, 1),
+        'total_duration_minutes': total_minutes,
+        'total_sets': total_sets,
+        'active_days': active_days,
+        'category_breakdown': categories,
+    }
+
+
+
 
 
