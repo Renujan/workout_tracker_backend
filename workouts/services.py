@@ -357,4 +357,31 @@ def duplicate_workout_plan(user, plan_id, new_name=None):
     return new_plan
 
 
+def calculate_estimated_calories_burned(user, duration_minutes, total_volume_kg=0, category='Full Body'):
+    """
+    Estimates calories burned using standard MET (Metabolic Equivalent of Task) values.
+    Formula: Calories = (MET * 3.5 * weight_kg / 200) * duration_minutes
+    """
+    profile = getattr(user, 'profile', None)
+    weight_kg = profile.current_weight_kg if (profile and profile.current_weight_kg) else 75.0
+
+    cat_lower = (category or '').lower()
+    if 'cardio' in cat_lower:
+        met = 7.5
+    elif 'full' in cat_lower:
+        met = 6.0
+    else:
+        met = 5.5
+
+    base_calories = (met * 3.5 * weight_kg / 200.0) * max(1, duration_minutes)
+
+    if total_volume_kg > 5000:
+        base_calories *= 1.10
+    elif total_volume_kg > 2500:
+        base_calories *= 1.05
+
+    return round(base_calories)
+
+
+
 

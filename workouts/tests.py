@@ -306,6 +306,19 @@ class WorkoutAPITestCase(TestCase):
         # Verify exercises were cloned
         self.assertEqual(len(res.data['exercises']), 1)
 
+    # ── Calorie Calculator ────────────────────────────────────────────────────
+    def test_calorie_estimate_view(self):
+        payload = {
+            'duration_minutes': 60,
+            'total_volume_kg': 3000.0,
+            'category': 'Push'
+        }
+        res = self.client.post('/api/v1/workouts/calculator/calories/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertGreater(res.data['estimated_calories_burned'], 0)
+        self.assertEqual(res.data['duration_minutes'], 60)
+
+
 
 
 

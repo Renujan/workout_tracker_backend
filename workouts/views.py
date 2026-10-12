@@ -17,8 +17,9 @@ from .serializers import (
 from .services import (
     complete_workout_session, update_user_profile_stats,
     evaluate_and_unlock_achievements, calculate_one_rep_max,
-    duplicate_workout_plan
+    duplicate_workout_plan, calculate_estimated_calories_burned
 )
+
 
 
 
@@ -182,4 +183,43 @@ class OneRepMaxCalculatorView(APIView):
 
         result = calculate_one_rep_max(weight, reps, formula=formula)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class CalorieEstimateView(APIView):
+    """POST /api/v1/workouts/calculator/calories/ — estimate calories burned."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        duration = request.data.get('duration_minutes')
+        total_volume = request.data.get('total_volume_kg', 0)
+        category = request.data.get('category', 'Full Body')
+
+        if duration is None:
+            return Response(
+                {'error': 'duration_minutes is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            duration = int(duration)
+            total_volume = float(total_volume)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid format for duration or total_volume.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        calories = calculate_estimated_calories_burned(
+            user=request.user,
+            duration_minutes=duration,
+            total_volume_kg=total_volume,
+            category=category
+        )
+        return Response({
+            'duration_minutes': duration,
+            'total_volume_kg': total_volume,
+            'category': category,
+            'estimated_calories_burned': calories
+        }, status=status.HTTP_200_OK)
+
 
