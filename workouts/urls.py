@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     WorkoutPlanViewSet, WorkoutSessionViewSet,
-    WorkoutSetViewSet, CompletedWorkoutViewSet
+    WorkoutSetViewSet, CompletedWorkoutViewSet,
+    OneRepMaxCalculatorView
 )
 
 router = DefaultRouter()
@@ -12,5 +13,7 @@ router.register(r'sets', WorkoutSetViewSet, basename='workout-set')
 router.register(r'history', CompletedWorkoutViewSet, basename='completed-workout')
 
 urlpatterns = [
+    path('calculator/1rm/', OneRepMaxCalculatorView.as_view(), name='workouts-calculator-1rm'),
     path('', include(router.urls)),
 ]
+

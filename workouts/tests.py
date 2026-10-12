@@ -270,3 +270,15 @@ class WorkoutAPITestCase(TestCase):
         res = self.client.get('/api/v1/workouts/history/')
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data['count'], 0)
+
+    # ── 1RM Calculator ────────────────────────────────────────────────────────
+    def test_one_rep_max_calculator_epley(self):
+        payload = {'weight_kg': 100, 'reps': 5, 'formula': 'epley'}
+        res = self.client.post('/api/v1/workouts/calculator/1rm/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # 100 * (1 + 5/30) = 116.666... -> 116.7
+        self.assertAlmostEqual(res.data['estimated_1rm'], 116.7, delta=0.2)
+        self.assertIn('percentages', res.data)
+        self.assertIn('rep_table', res.data)
+        self.assertEqual(res.data['formula'], 'epley')
+

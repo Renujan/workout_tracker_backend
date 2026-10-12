@@ -284,3 +284,45 @@ def complete_workout_session(session):
     evaluate_and_unlock_achievements(user)
 
     return completed_workout
+
+
+def calculate_one_rep_max(weight_kg, reps, formula='epley'):
+    """
+    Computes estimated 1 Rep Max (1RM) and rep ranges using established lifting formulas.
+    Supported formulas: 'epley', 'brzycki', 'lander', 'lombardi'.
+    """
+    if reps <= 0 or weight_kg <= 0:
+        return {'estimated_1rm': 0.0, 'percentages': {}, 'rep_table': {}}
+
+    if reps == 1:
+        one_rm = float(weight_kg)
+    elif formula == 'brzycki' and reps < 37:
+        one_rm = weight_kg * (36.0 / (37.0 - reps))
+    elif formula == 'lander' and reps < 38:
+        one_rm = (100.0 * weight_kg) / (101.3 - 2.67123 * reps)
+    elif formula == 'lombardi':
+        one_rm = weight_kg * (reps ** 0.10)
+    else:  # default 'epley'
+        one_rm = weight_kg * (1.0 + reps / 30.0)
+
+    one_rm = round(one_rm, 1)
+
+    percentages = {
+        f'{p}%': round(one_rm * (p / 100.0), 1)
+        for p in [100, 95, 90, 85, 80, 75, 70, 65, 60, 50]
+    }
+
+    rep_table = {
+        f'{r}RM': round(one_rm / (1.0 + r / 30.0), 1)
+        for r in range(1, 13)
+    }
+
+    return {
+        'weight_kg': float(weight_kg),
+        'reps': int(reps),
+        'formula': formula,
+        'estimated_1rm': one_rm,
+        'percentages': percentages,
+        'rep_table': rep_table,
+    }
+

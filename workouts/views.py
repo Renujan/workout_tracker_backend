@@ -1,3 +1,4 @@
+from rest_framework.views import APIView
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,8 +16,9 @@ from .serializers import (
 )
 from .services import (
     complete_workout_session, update_user_profile_stats,
-    evaluate_and_unlock_achievements
+    evaluate_and_unlock_achievements, calculate_one_rep_max
 )
+
 
 
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
@@ -141,3 +143,32 @@ class CompletedWorkoutViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
         update_user_profile_stats(self.request.user)
         evaluate_and_unlock_achievements(self.request.user)
+
+
+class OneRepMaxCalculatorView(APIView):
+    """POST /api/v1/workouts/calculator/1rm/ — calculate estimated 1RM, percentages and rep table."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        weight = request.data.get('weight_kg')
+        reps = request.data.get('reps')
+        formula = request.data.get('formula', 'epley')
+
+        if weight is None or reps is None:
+            return Response(
+                {'error': 'Both weight_kg and reps are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            weight = float(weight)
+            reps = int(reps)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid weight_kg or reps format.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = calculate_one_rep_max(weight, reps, formula=formula)
+        return Response(result, status=status.HTTP_200_OK)
+
