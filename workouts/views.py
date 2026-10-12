@@ -18,8 +18,9 @@ from .services import (
     complete_workout_session, update_user_profile_stats,
     evaluate_and_unlock_achievements, calculate_one_rep_max,
     duplicate_workout_plan, calculate_estimated_calories_burned,
-    get_weekly_workout_summary
+    get_weekly_workout_summary, export_workout_history
 )
+
 
 
 
@@ -232,6 +233,22 @@ class WeeklySummaryView(APIView):
     def get(self, request):
         summary = get_weekly_workout_summary(request.user)
         return Response(summary, status=status.HTTP_200_OK)
+
+
+class WorkoutHistoryExportView(APIView):
+    """GET /api/v1/workouts/history/export/?format=csv|json — export workout history."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.http import HttpResponse
+        export_format = request.query_params.get('format', 'json').lower()
+        data, content_type = export_workout_history(request.user, export_format=export_format)
+        if export_format == 'csv':
+            response = HttpResponse(data, content_type=content_type)
+            response['Content-Disposition'] = 'attachment; filename="workout_history.csv"'
+            return response
+        return Response(data, status=status.HTTP_200_OK)
+
 
 
 

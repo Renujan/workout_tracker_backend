@@ -425,6 +425,39 @@ def get_weekly_workout_summary(user, reference_date=None):
     }
 
 
+def export_workout_history(user, export_format='json'):
+    """
+    Exports all completed workouts for the user in either JSON or CSV format.
+    """
+    import csv
+    import io
+    workouts = CompletedWorkout.objects.filter(user=user).order_by('-date')
+
+    data = []
+    for w in workouts:
+        data.append({
+            'date': w.date.isoformat(),
+            'name': w.name,
+            'category': w.category,
+            'duration_minutes': w.duration_minutes,
+            'total_volume_kg': w.total_volume_kg,
+            'total_sets': w.total_sets,
+        })
+
+    if export_format.lower() == 'csv':
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=['date', 'name', 'category', 'duration_minutes', 'total_volume_kg', 'total_sets']
+        )
+        writer.writeheader()
+        writer.writerows(data)
+        return output.getvalue(), 'text/csv'
+
+    return data, 'application/json'
+
+
+
 
 
 
