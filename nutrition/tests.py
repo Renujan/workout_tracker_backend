@@ -110,3 +110,13 @@ class NutritionAPITestCase(TestCase):
         self.assertEqual(post_res.status_code, status.HTTP_200_OK)
         self.assertEqual(post_res.data['water_liters'], 0.75)
 
+    def test_nutrient_timing_recommendations(self):
+        res = self.client.get('/api/v1/nutrition/recommendations/timing/?intensity=high&duration_minutes=75')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('pre_workout', res.data)
+        self.assertIn('intra_workout', res.data)
+        self.assertIn('post_workout', res.data)
+        self.assertTrue(res.data['intra_workout']['needed'])
+        self.assertGreater(res.data['pre_workout']['carbs_grams'], 0)
+        self.assertGreater(res.data['post_workout']['protein_grams'], 0)
+

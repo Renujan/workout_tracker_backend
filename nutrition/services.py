@@ -162,3 +162,53 @@ def get_or_update_hydration(user, query_date, add_liters=None, set_liters=None):
         'goal_met': daily.water_liters >= target,
     }
 
+
+def calculate_nutrient_timing(weight_kg=75.0, workout_intensity='moderate', workout_duration_minutes=60):
+    """
+    Generates pre-workout fuel, intra-workout hydration, and post-workout recovery macro windows.
+    Based on ISSN (International Society of Sports Nutrition) guidelines.
+    """
+    w = max(40.0, float(weight_kg))
+    duration = max(15, int(workout_duration_minutes))
+
+    # Pre-workout (60-90m before)
+    pre_carbs = round(w * 0.8, 1)
+    pre_protein = round(w * 0.35, 1)
+    pre_water_ml = 500
+
+    # Post-workout (within 45-60m after)
+    intensity_multiplier = 1.2 if workout_intensity.lower() in ['high', 'intense'] else 1.0
+    post_carbs = round(w * 1.0 * intensity_multiplier, 1)
+    post_protein = round(max(25.0, w * 0.4), 1)
+
+    intra_recommendation = {
+        'needed': duration > 60 or workout_intensity.lower() in ['high', 'intense'],
+        'carbs_g': 30 if duration > 60 else 0,
+        'water_ml_per_hour': 600,
+        'electrolytes': 'Recommended for sweat-heavy sessions exceeding 60 minutes.',
+    }
+
+    return {
+        'weight_kg': w,
+        'workout_duration_minutes': duration,
+        'workout_intensity': workout_intensity,
+        'pre_workout': {
+            'timing_window': '60-90 minutes before workout',
+            'carbs_grams': pre_carbs,
+            'protein_grams': pre_protein,
+            'fat_grams_limit': 10,
+            'water_ml': pre_water_ml,
+            'suggested_foods': ['Oatmeal with whey protein', 'Banana with rice cakes', 'Toast with sliced chicken breast'],
+            'guideline': 'Focus on easy-to-digest carbs and low fat to prevent GI discomfort.',
+        },
+        'intra_workout': intra_recommendation,
+        'post_workout': {
+            'timing_window': 'Within 45-60 minutes post-session',
+            'carbs_grams': post_carbs,
+            'protein_grams': post_protein,
+            'carb_to_protein_ratio': f"{round(post_carbs / max(1, post_protein), 1)}:1",
+            'suggested_foods': ['Whey isolate with cream of rice', 'Chicken breast with white rice & veggies', 'Greek yogurt with berries & honey'],
+            'guideline': 'Prioritize high glycemic carbs for glycogen restoration and 25-40g high-leucine protein.',
+        }
+    }
+

@@ -139,3 +139,36 @@ class HydrationTrackerView(APIView):
         return Response(current_data, status=status.HTTP_200_OK)
 
 
+from .services import calculate_nutrient_timing
+
+
+class NutrientTimingRecommendationView(APIView):
+    """GET/POST /api/v1/nutrition/recommendations/timing/ — pre and post workout nutrition timing guidelines."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = getattr(request.user, 'profile', None)
+        weight = profile.current_weight_kg if (profile and profile.current_weight_kg) else 75.0
+        intensity = request.query_params.get('intensity', 'moderate')
+        duration = request.query_params.get('duration_minutes', 60)
+        data = calculate_nutrient_timing(
+            weight_kg=weight,
+            workout_intensity=intensity,
+            workout_duration_minutes=duration
+        )
+        return Response(data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        profile = getattr(request.user, 'profile', None)
+        default_weight = profile.current_weight_kg if (profile and profile.current_weight_kg) else 75.0
+        weight = request.data.get('weight_kg', default_weight)
+        intensity = request.data.get('intensity', 'moderate')
+        duration = request.data.get('duration_minutes', 60)
+        data = calculate_nutrient_timing(
+            weight_kg=weight,
+            workout_intensity=intensity,
+            workout_duration_minutes=duration
+        )
+        return Response(data, status=status.HTTP_200_OK)
+
+
