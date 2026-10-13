@@ -106,7 +106,7 @@ class FitnessInsightViewSet(viewsets.ReadOnlyModelViewSet):
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .services import calculate_body_composition_trends
+from .services import calculate_body_composition_trends, calculate_circumference_deltas
 
 
 class BodyCompositionTrendsView(APIView):
@@ -122,4 +122,13 @@ class BodyCompositionTrendsView(APIView):
 
         trends = calculate_body_composition_trends(request.user, height_cm=height)
         return Response(trends, status=status.HTTP_200_OK)
+
+
+class BodyCircumferenceDeltasView(APIView):
+    """GET /api/v1/progress/analytics/circumference/ — track body circumference measurements and deltas."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data = calculate_circumference_deltas(request.user)
+        return Response(data, status=status.HTTP_200_OK)
 

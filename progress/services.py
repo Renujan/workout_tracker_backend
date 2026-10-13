@@ -197,3 +197,66 @@ def evaluate_and_sync_achievements(user):
         'newly_unlocked': newly_unlocked,
     }
 
+
+def calculate_circumference_deltas(user):
+    """
+    Computes body circumference measurement progressions and deltas (chest, arms, waist, thighs).
+    """
+    measurements = list(BodyMeasurement.objects.filter(user=user).order_by('date'))
+    if not measurements:
+        return {
+            'has_data': False,
+            'measurements_count': 0,
+            'deltas': {},
+            'symmetry_summary': 'No body measurements logged yet.',
+        }
+
+    first = measurements[0]
+    latest = measurements[-1]
+
+    def delta_item(key, name):
+        init_val = getattr(first, key)
+        curr_val = getattr(latest, key)
+        if init_val is not None and curr_val is not None:
+            diff = round(curr_val - init_val, 1)
+            pct = round((diff / init_val) * 100.0, 1) if init_val > 0 else 0.0
+            return {
+                'name': name,
+                'initial_cm': init_val,
+                'current_cm': curr_val,
+                'delta_cm': diff,
+                'percentage_change': pct,
+            }
+        return {
+            'name': name,
+            'initial_cm': init_val,
+            'current_cm': curr_val,
+            'delta_cm': 0.0,
+            'percentage_change': 0.0,
+        }
+
+    metrics = {
+        'chest': delta_item('chest_cm', 'Chest'),
+        'arms': delta_item('arms_cm', 'Arms / Biceps'),
+        'waist': delta_item('waist_cm', 'Waist'),
+        'thighs': delta_item('thighs_cm', 'Thighs / Quads'),
+    }
+
+    # Symmetry / V-Taper index
+    v_taper = None
+    if latest.waist_cm and latest.chest_cm and latest.waist_cm > 0:
+        ratio = round(latest.chest_cm / latest.waist_cm, 2)
+        v_taper = {
+            'chest_to_waist_ratio': ratio,
+            'status': 'Strong V-Taper' if ratio >= 1.25 else 'Balanced Proportion',
+        }
+
+    return {
+        'has_data': True,
+        'measurements_count': len(measurements),
+        'baseline_date': first.date.isoformat(),
+        'latest_date': latest.date.isoformat(),
+        'circumferences': metrics,
+        'v_taper_index': v_taper,
+    }
+

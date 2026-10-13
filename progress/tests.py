@@ -82,3 +82,27 @@ class ProgressAPITestCase(TestCase):
         first_ach = next((a for a in res.data['achievements'] if a['title'] == 'First Workout'), None)
         self.assertIsNotNone(first_ach)
         self.assertTrue(first_ach['unlocked'])
+
+    def test_circumference_deltas_analytics(self):
+        BodyMeasurement.objects.create(
+            user=self.user,
+            date=self.today - datetime.timedelta(days=30),
+            weight_kg=80.0,
+            chest_cm=100.0,
+            waist_cm=85.0,
+            arms_cm=36.0,
+        )
+        BodyMeasurement.objects.create(
+            user=self.user,
+            date=self.today,
+            weight_kg=78.0,
+            chest_cm=104.0,
+            waist_cm=80.0,
+            arms_cm=38.0,
+        )
+        res = self.client.get('/api/v1/progress/analytics/circumference/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.data['has_data'])
+        self.assertEqual(res.data['circumferences']['chest']['delta_cm'], 4.0)
+        self.assertEqual(res.data['circumferences']['waist']['delta_cm'], -5.0)
+        self.assertIsNotNone(res.data['v_taper_index'])
