@@ -19,7 +19,7 @@ from .services import (
     evaluate_and_unlock_achievements, calculate_one_rep_max,
     duplicate_workout_plan, calculate_estimated_calories_burned,
     get_weekly_workout_summary, export_workout_history,
-    calculate_recommended_rest_timer
+    calculate_recommended_rest_timer, get_workout_activity_calendar
 )
 
 
@@ -264,6 +264,20 @@ class RestTimerCalculatorView(APIView):
             return Response({'error': 'reps must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
         result = calculate_recommended_rest_timer(reps=r, exercise_type=exercise_type)
         return Response(result, status=status.HTTP_200_OK)
+
+
+class WorkoutActivityCalendarView(APIView):
+    """GET /api/v1/workouts/analytics/activity-calendar/?days=30 — activity heatmap and consistency."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        days = request.query_params.get('days', 30)
+        try:
+            days = int(days)
+        except (ValueError, TypeError):
+            days = 30
+        data = get_workout_activity_calendar(request.user, days=days)
+        return Response(data, status=status.HTTP_200_OK)
 
 
 

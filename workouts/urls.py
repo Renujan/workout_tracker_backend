@@ -5,7 +5,7 @@ from .views import (
     WorkoutSetViewSet, CompletedWorkoutViewSet,
     OneRepMaxCalculatorView, CalorieEstimateView,
     WeeklySummaryView, WorkoutHistoryExportView,
-    RestTimerCalculatorView
+    RestTimerCalculatorView, WorkoutActivityCalendarView
 )
 
 router = DefaultRouter()
@@ -19,6 +19,7 @@ urlpatterns = [
     path('calculator/calories/', CalorieEstimateView.as_view(), name='workouts-calculator-calories'),
     path('calculator/rest-timer/', RestTimerCalculatorView.as_view(), name='workouts-calculator-rest-timer'),
     path('analytics/weekly-summary/', WeeklySummaryView.as_view(), name='workouts-weekly-summary'),
+    path('analytics/activity-calendar/', WorkoutActivityCalendarView.as_view(), name='workouts-activity-calendar'),
     path('history/export/', WorkoutHistoryExportView.as_view(), name='workouts-history-export'),
     path('', include(router.urls)),
 ]

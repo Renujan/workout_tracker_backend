@@ -504,3 +504,85 @@ def calculate_recommended_rest_timer(reps=None, exercise_type='compound'):
         'training_goal': goal,
         'tip': tip,
     }
+
+
+def get_workout_activity_calendar(user, days=30):
+    """
+    Builds a day-by-day activity heatmap and consistency metrics for the last N days.
+    """
+    days = min(max(int(days), 7), 365)
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=days - 1)
+
+    workouts = CompletedWorkout.objects.filter(
+        user=user, date__gte=start_date, date__lte=today
+    ).order_by('date')
+
+    # Group by date
+    daily_stats = {}
+    for w in workouts:
+        d_str = w.date.isoformat()
+        if d_str not in daily_stats:
+            daily_stats[d_str] = {'workouts': 0, 'volume_kg': 0.0, 'duration_minutes': 0, 'categories': []}
+        daily_stats[d_str]['workouts'] += 1
+        daily_stats[d_str]['volume_kg'] += w.total_volume_kg
+        daily_stats[d_str]['duration_minutes'] += w.duration_minutes
+        if w.category and w.category not in daily_stats[d_str]['categories']:
+            daily_stats[d_str]['categories'].append(w.category)
+
+    heatmap = []
+    active_days_count = 0
+    total_volume = 0.0
+    for i in range(days):
+        current_day = start_date + datetime.timedelta(days=i)
+        d_str = current_day.isoformat()
+        day_data = daily_stats.get(d_str)
+        if day_data:
+            active_days_count += 1
+            vol = round(day_data['volume_kg'], 1)
+            total_volume += vol
+            # Level 1-4
+            if vol > 5000:
+                level = 4
+            elif vol > 2500:
+                level = 3
+            elif vol > 1000:
+                level = 2
+            else:
+                level = 1
+
+            heatmap.append({
+                'date': d_str,
+                'active': True,
+                'level': level,
+                'workout_count': day_data['workouts'],
+                'volume_kg': vol,
+                'duration_minutes': day_data['duration_minutes'],
+                'categories': day_data['categories'],
+            })
+        else:
+            heatmap.append({
+                'date': d_str,
+                'active': False,
+                'level': 0,
+                'workout_count': 0,
+                'volume_kg': 0.0,
+                'duration_minutes': 0,
+                'categories': [],
+            })
+
+    current_streak = calculate_user_streaks(user)
+    profile = getattr(user, 'profile', None)
+    longest_streak = profile.longest_streak if profile else current_streak
+
+    return {
+        'days_requested': days,
+        'start_date': start_date.isoformat(),
+        'end_date': today.isoformat(),
+        'active_days_count': active_days_count,
+        'consistency_rate_pct': round((active_days_count / days) * 100, 1),
+        'total_period_volume_kg': round(total_volume, 1),
+        'current_streak': current_streak,
+        'longest_streak': longest_streak,
+        'calendar': heatmap,
+    }

@@ -327,6 +327,24 @@ class WorkoutAPITestCase(TestCase):
         self.assertEqual(res.data['recommended_rest_seconds'], 210)  # 180 + 30
         self.assertEqual(res.data['training_goal'], 'Strength & Power')
 
+    # ── Activity Calendar ─────────────────────────────────────────────────────
+    def test_workout_activity_calendar(self):
+        from django.utils import timezone
+        today = timezone.now().date()
+        CompletedWorkout.objects.create(
+            user=self.user, name='Leg Day', date=today,
+            duration_minutes=50, total_volume_kg=4000, total_sets=16, category='Legs'
+        )
+        res = self.client.get('/api/v1/workouts/analytics/activity-calendar/?days=14')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['days_requested'], 14)
+        self.assertGreaterEqual(res.data['active_days_count'], 1)
+        self.assertEqual(len(res.data['calendar']), 14)
+        today_entry = next((d for d in res.data['calendar'] if d['date'] == today.isoformat()), None)
+        self.assertIsNotNone(today_entry)
+        self.assertTrue(today_entry['active'])
+        self.assertEqual(today_entry['volume_kg'], 4000.0)
+
 
 
 
