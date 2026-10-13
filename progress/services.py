@@ -97,8 +97,103 @@ def evaluate_fitness_goals(user):
             # If target reached
             if goal.target_value <= goal.current_value and profile.target_weight_kg >= goal.target_value:
                 goal.is_completed = True
-            goal.save()
-            evaluated_count += 1
-
     return evaluated_count
+
+
+def evaluate_and_sync_achievements(user):
+    """
+    Evaluates global fitness milestones and syncs Achievement records for a user.
+    """
+    from django.utils import timezone
+    from .models import Achievement
+    profile = getattr(user, 'profile', None)
+
+    total_workouts = profile.total_workouts if profile else 0
+    total_volume = profile.total_volume_kg if profile else 0.0
+    streak = profile.current_streak if profile else 0
+    longest_streak = profile.longest_streak if profile else 0
+    total_sets = profile.total_sets if profile else 0
+    weekly_comp = profile.weekly_completion if profile else 0.0
+
+    rules = [
+        {
+            'title': 'First Workout',
+            'description': 'Completed your very first logged workout session.',
+            'category': 'Milestone',
+            'icon_name': 'Flame',
+            'progress': min(1, total_workouts),
+            'max_progress': 1,
+            'is_met': total_workouts >= 1,
+        },
+        {
+            'title': 'Consistency Champion',
+            'description': 'Maintained a workout streak of at least 5 days.',
+            'category': 'Streak',
+            'icon_name': 'Zap',
+            'progress': min(5, max(streak, longest_streak)),
+            'max_progress': 5,
+            'is_met': max(streak, longest_streak) >= 5,
+        },
+        {
+            'title': 'Century Sets',
+            'description': 'Completed 100 total exercise sets.',
+            'category': 'Volume',
+            'icon_name': 'Dumbbell',
+            'progress': min(100, total_sets),
+            'max_progress': 100,
+            'is_met': total_sets >= 100,
+        },
+        {
+            'title': 'Volume Titan',
+            'description': 'Lifted an aggregate lifetime volume exceeding 10,000 kg.',
+            'category': 'Volume',
+            'icon_name': 'Trophy',
+            'progress': min(10000, int(total_volume)),
+            'max_progress': 10000,
+            'is_met': total_volume >= 10000,
+        },
+        {
+            'title': 'Perfect Week',
+            'description': 'Hit 100% of your weekly target workouts.',
+            'category': 'Consistency',
+            'icon_name': 'Award',
+            'progress': min(100, int(weekly_comp)),
+            'max_progress': 100,
+            'is_met': weekly_comp >= 100.0,
+        },
+    ]
+
+    newly_unlocked = []
+    total_unlocked = 0
+
+    for rule in rules:
+        ach, created = Achievement.objects.get_or_create(
+            user=user,
+            title=rule['title'],
+            defaults={
+                'description': rule['description'],
+                'category': rule['category'],
+                'icon_name': rule['icon_name'],
+                'max_progress': rule['max_progress'],
+                'progress': rule['progress'],
+            }
+        )
+
+        ach.progress = rule['progress']
+        ach.max_progress = rule['max_progress']
+
+        if rule['is_met'] and not ach.unlocked:
+            ach.unlocked = True
+            ach.unlocked_at = timezone.now()
+            newly_unlocked.append(ach.title)
+
+        ach.save()
+        if ach.unlocked:
+            total_unlocked += 1
+
+    return {
+        'total_evaluated': len(rules),
+        'total_unlocked': total_unlocked,
+        'newly_unlocked': newly_unlocked,
+    }
 

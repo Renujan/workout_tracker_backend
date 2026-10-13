@@ -72,3 +72,13 @@ class ProgressAPITestCase(TestCase):
         goal.refresh_from_db()
         self.assertTrue(goal.is_completed)
         self.assertEqual(goal.current_value, 10.0)
+
+    def test_sync_achievements_action(self):
+        res = self.client.post('/api/v1/progress/achievements/sync/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('sync_summary', res.data)
+        self.assertIn('achievements', res.data)
+        self.assertGreaterEqual(res.data['sync_summary']['total_unlocked'], 1)  # User has total_workouts=10
+        first_ach = next((a for a in res.data['achievements'] if a['title'] == 'First Workout'), None)
+        self.assertIsNotNone(first_ach)
+        self.assertTrue(first_ach['unlocked'])

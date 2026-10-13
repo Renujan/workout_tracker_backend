@@ -79,6 +79,18 @@ class AchievementViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @action(detail=False, methods=['post'])
+    def sync(self, request):
+        """POST /api/v1/progress/achievements/sync/ — evaluate and unlock milestones."""
+        from .services import evaluate_and_sync_achievements
+        result = evaluate_and_sync_achievements(request.user)
+        achievements = self.get_queryset()
+        serializer = self.get_serializer(achievements, many=True)
+        return Response({
+            'sync_summary': result,
+            'achievements': serializer.data,
+        }, status=status.HTTP_200_OK)
+
 
 class FitnessInsightViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = FitnessInsightSerializer
