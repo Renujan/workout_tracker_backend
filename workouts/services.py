@@ -586,3 +586,65 @@ def get_workout_activity_calendar(user, days=30):
         'longest_streak': longest_streak,
         'calendar': heatmap,
     }
+
+
+def calculate_volume_progression(user, weeks=4):
+    """
+    Computes week-over-week training tonnage volume progression across the last N weeks.
+    Classifies trend into Progressive Overload, Maintenance, or Deload.
+    """
+    weeks = min(max(int(weeks), 2), 12)
+    today = timezone.now().date()
+    current_monday = today - datetime.timedelta(days=today.weekday())
+
+    weekly_data = []
+    for i in range(weeks - 1, -1, -1):
+        w_start = current_monday - datetime.timedelta(weeks=i)
+        w_end = w_start + datetime.timedelta(days=6)
+
+        week_workouts = CompletedWorkout.objects.filter(
+            user=user, date__gte=w_start, date__lte=w_end
+        )
+        vol = round(sum(w.total_volume_kg for w in week_workouts), 1)
+        count = week_workouts.count()
+        sets = sum(w.total_sets for w in week_workouts)
+
+        weekly_data.append({
+            'week_index': len(weekly_data) + 1,
+            'start_date': w_start.isoformat(),
+            'end_date': w_end.isoformat(),
+            'total_volume_kg': vol,
+            'workout_count': count,
+            'total_sets': sets,
+            'percentage_change': 0.0,
+        })
+
+    # Calculate WoW changes
+    for i in range(1, len(weekly_data)):
+        prev_vol = weekly_data[i - 1]['total_volume_kg']
+        curr_vol = weekly_data[i]['total_volume_kg']
+        if prev_vol > 0:
+            diff = ((curr_vol - prev_vol) / prev_vol) * 100.0
+            weekly_data[i]['percentage_change'] = round(diff, 1)
+        elif curr_vol > 0:
+            weekly_data[i]['percentage_change'] = 100.0
+
+    curr_vol = weekly_data[-1]['total_volume_kg']
+    prev_vol = weekly_data[-2]['total_volume_kg'] if len(weekly_data) >= 2 else curr_vol
+    wow_change = weekly_data[-1]['percentage_change']
+
+    if wow_change > 5.0:
+        trend = 'Progressive Overload'
+    elif wow_change < -15.0:
+        trend = 'Deload / Recovery'
+    else:
+        trend = 'Maintenance'
+
+    return {
+        'weeks_evaluated': weeks,
+        'current_week_volume_kg': curr_vol,
+        'previous_week_volume_kg': prev_vol,
+        'wow_change_percentage': wow_change,
+        'training_trend': trend,
+        'weekly_history': weekly_data,
+    }

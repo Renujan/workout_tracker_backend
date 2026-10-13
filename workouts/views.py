@@ -19,7 +19,8 @@ from .services import (
     evaluate_and_unlock_achievements, calculate_one_rep_max,
     duplicate_workout_plan, calculate_estimated_calories_burned,
     get_weekly_workout_summary, export_workout_history,
-    calculate_recommended_rest_timer, get_workout_activity_calendar
+    calculate_recommended_rest_timer, get_workout_activity_calendar,
+    calculate_volume_progression
 )
 
 
@@ -277,6 +278,20 @@ class WorkoutActivityCalendarView(APIView):
         except (ValueError, TypeError):
             days = 30
         data = get_workout_activity_calendar(request.user, days=days)
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class VolumeProgressionView(APIView):
+    """GET /api/v1/workouts/analytics/volume-progression/?weeks=4 — week-over-week volume progression."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        weeks = request.query_params.get('weeks', 4)
+        try:
+            weeks = int(weeks)
+        except (ValueError, TypeError):
+            weeks = 4
+        data = calculate_volume_progression(request.user, weeks=weeks)
         return Response(data, status=status.HTTP_200_OK)
 
 

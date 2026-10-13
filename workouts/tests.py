@@ -345,6 +345,15 @@ class WorkoutAPITestCase(TestCase):
         self.assertTrue(today_entry['active'])
         self.assertEqual(today_entry['volume_kg'], 4000.0)
 
+    # ── Volume Progression Analytics ──────────────────────────────────────────
+    def test_volume_progression_analytics(self):
+        res = self.client.get('/api/v1/workouts/analytics/volume-progression/?weeks=4')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['weeks_evaluated'], 4)
+        self.assertIn('training_trend', res.data)
+        self.assertIn('weekly_history', res.data)
+        self.assertEqual(len(res.data['weekly_history']), 4)
+
 
 
 
