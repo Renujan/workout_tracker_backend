@@ -106,3 +106,59 @@ def get_daily_macro_summary(user, query_date):
         'is_calorie_deficit': consumed_cals < target_cals,
     }
 
+
+def calculate_hydration_target(weight_kg=75.0, workout_minutes=0):
+    """
+    Calculates recommended daily water intake based on body weight and workout duration.
+    Base: 35ml per kg of bodyweight.
+    Exercise addition: +500ml per 45 minutes of training.
+    """
+    w = max(40.0, float(weight_kg))
+    base_ml = w * 35.0
+    extra_ml = (max(0, int(workout_minutes)) / 45.0) * 500.0
+    total_ml = base_ml + extra_ml
+    total_liters = round(total_ml / 1000.0, 2)
+    glasses = round(total_ml / 250.0)
+
+    return {
+        'weight_kg': w,
+        'workout_minutes': workout_minutes,
+        'recommended_water_liters': total_liters,
+        'recommended_water_ml': round(total_ml),
+        'recommended_glasses_250ml': glasses,
+        'base_liters': round(base_ml / 1000.0, 2),
+        'exercise_liters': round(extra_ml / 1000.0, 2),
+        'hydration_tip': 'Drink 500ml upon waking and hydrate evenly throughout your workout.',
+    }
+
+
+def get_or_update_hydration(user, query_date, add_liters=None, set_liters=None):
+    """
+    Fetches or updates daily water consumption for a user.
+    """
+    from .models import DailyNutrition
+    daily, _ = DailyNutrition.objects.get_or_create(
+        user=user, date=query_date,
+        defaults={'target_water_liters': 3.0}
+    )
+
+    if set_liters is not None:
+        daily.water_liters = max(0.0, round(float(set_liters), 2))
+        daily.save(update_fields=['water_liters'])
+    elif add_liters is not None:
+        daily.water_liters = max(0.0, round(daily.water_liters + float(add_liters), 2))
+        daily.save(update_fields=['water_liters'])
+
+    target = daily.target_water_liters or 3.0
+    completion_pct = round((daily.water_liters / max(0.1, target)) * 100.0, 1)
+
+    return {
+        'date': query_date.isoformat(),
+        'water_liters': daily.water_liters,
+        'target_water_liters': target,
+        'completion_percentage': min(100.0, completion_pct),
+        'glasses_drank': round(daily.water_liters * 4.0),
+        'target_glasses': round(target * 4.0),
+        'goal_met': daily.water_liters >= target,
+    }
+

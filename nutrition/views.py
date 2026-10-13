@@ -95,3 +95,47 @@ class DailyMacroSummaryView(APIView):
         return Response(summary, status=status.HTTP_200_OK)
 
 
+from .services import calculate_hydration_target, get_or_update_hydration
+
+
+class HydrationTrackerView(APIView):
+    """GET/POST /api/v1/nutrition/hydration/ — water tracking and dynamic hydration targets."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        if date_str:
+            try:
+                query_date = datetime.date.fromisoformat(date_str)
+            except ValueError:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            query_date = timezone.now().date()
+
+        profile = getattr(request.user, 'profile', None)
+        weight = profile.current_weight_kg if (profile and profile.current_weight_kg) else 75.0
+        recommendation = calculate_hydration_target(weight_kg=weight)
+        current_data = get_or_update_hydration(request.user, query_date)
+        return Response({
+            'status': current_data,
+            'recommendation': recommendation,
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        date_str = request.data.get('date')
+        if date_str:
+            try:
+                query_date = datetime.date.fromisoformat(date_str)
+            except ValueError:
+                return Response({'error': 'Invalid date format.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            query_date = timezone.now().date()
+
+        add_liters = request.data.get('add_liters')
+        set_liters = request.data.get('set_liters')
+        current_data = get_or_update_hydration(
+            request.user, query_date, add_liters=add_liters, set_liters=set_liters
+        )
+        return Response(current_data, status=status.HTTP_200_OK)
+
+

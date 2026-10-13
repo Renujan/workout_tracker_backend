@@ -95,3 +95,18 @@ class NutritionAPITestCase(TestCase):
         self.assertEqual(res.data['consumed']['calories'], 200)
         self.assertEqual(res.data['consumed']['protein_grams'], 20.0)
 
+    def test_hydration_tracker_endpoints(self):
+        # 1. Test get recommendation and status
+        get_res = self.client.get(f'/api/v1/nutrition/hydration/?date={self.today}')
+        self.assertEqual(get_res.status_code, status.HTTP_200_OK)
+        self.assertIn('recommendation', get_res.data)
+        self.assertIn('status', get_res.data)
+
+        # 2. Test add water
+        post_res = self.client.post('/api/v1/nutrition/hydration/', {
+            'date': self.today,
+            'add_liters': 0.75,
+        }, format='json')
+        self.assertEqual(post_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(post_res.data['water_liters'], 0.75)
+
