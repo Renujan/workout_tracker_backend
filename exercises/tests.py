@@ -105,3 +105,20 @@ class ExerciseAPITestCase(TestCase):
         self.assertTrue(len(res.data) >= 1)
         self.assertEqual(res.data[0]['name'], 'Bench Press')
 
+    def test_exercise_pr_detail_and_overview(self):
+        PersonalRecord.objects.create(
+            user=self.user, exercise=self.exercise,
+            weight_kg=120.0, reps=5,
+            previous_weight_kg=110.0, improvement_kg=10.0,
+            date='2026-10-10', category='strength',
+        )
+        pr_res = self.client.get(f'/api/v1/exercises/{self.exercise.pk}/pr/')
+        self.assertEqual(pr_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(pr_res.data['max_weight_kg'], 120.0)
+        self.assertTrue(pr_res.data['has_records'])
+
+        overview_res = self.client.get('/api/v1/exercises/records/overview/')
+        self.assertEqual(overview_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(overview_res.data['total_prs'], 1)
+        self.assertEqual(len(overview_res.data['recent_prs']), 1)
+

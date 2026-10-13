@@ -7,6 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Exercise, ExerciseHistory, PersonalRecord
 from .serializers import ExerciseSerializer, ExerciseHistorySerializer, PersonalRecordSerializer
+from .services import PersonalRecordService
 
 
 class ExerciseViewSet(viewsets.ReadOnlyModelViewSet):
@@ -66,6 +67,12 @@ class ExerciseViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = ExerciseHistorySerializer(history_qs, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def pr(self, request, pk=None):
+        """GET /api/v1/exercises/{id}/pr/ — return user's personal bests for this exercise."""
+        exercise = self.get_object()
+        data = PersonalRecordService.get_exercise_pr_detail(request.user, exercise)
+        return Response(data)
 
 
 class ExerciseHistoryViewSet(viewsets.ModelViewSet):
@@ -96,3 +103,9 @@ class PersonalRecordViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def overview(self, request):
+        """GET /api/v1/exercises/records/overview/ — return summary of user's personal records."""
+        data = PersonalRecordService.get_user_pr_overview(request.user)
+        return Response(data)
