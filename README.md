@@ -111,11 +111,16 @@ python manage.py runserver
 | POST | `/api/v1/auth/token/refresh/` | Refresh access token |
 | POST | `/api/v1/auth/password/change/` | Change password with validation |
 | GET/PUT | `/api/v1/users/profile/` | Own user profile |
+| GET/POST | `/api/v1/users/preferences/` | User unit preferences and weekly target configuration |
 | GET | `/api/v1/exercises/` | Exercise library (filter/search) |
 | GET | `/api/v1/exercises/categories/` | Exercise filter options matrix |
 | GET | `/api/v1/exercises/muscle_groups/` | Muscle groups count distribution |
+| GET | `/api/v1/exercises/filter_matrix/` | Filter matrix across muscle, equipment, difficulty |
+| GET | `/api/v1/exercises/suggestions/` | Autocomplete exercise search suggestions |
 | GET | `/api/v1/exercises/{id}/` | Exercise detail + history |
+| GET | `/api/v1/exercises/{id}/pr/` | All-time personal bests for exercise |
 | GET/POST | `/api/v1/exercises/records/` | Personal records |
+| GET | `/api/v1/exercises/records/overview/` | Personal records summary overview |
 | GET/POST | `/api/v1/exercises/history/` | Exercise history points |
 | GET/POST | `/api/v1/workouts/plans/` | Workout plans (nested writable exercises) |
 | POST | `/api/v1/workouts/plans/{id}/duplicate/` | Clone workout plan template and exercises |
@@ -128,19 +133,27 @@ python manage.py runserver
 | GET | `/api/v1/workouts/history/export/` | Export workout history to CSV or JSON |
 | POST | `/api/v1/workouts/calculator/1rm/` | 1RM calculator (Epley, Brzycki, Lander) |
 | POST | `/api/v1/workouts/calculator/calories/` | Estimate calories burned via MET algorithm |
+| GET | `/api/v1/workouts/calculator/rest-timer/` | Recommended rest timer based on rep ranges & compound movements |
 | GET | `/api/v1/workouts/analytics/weekly-summary/` | Weekly workouts volume and consistency summary |
+| GET | `/api/v1/workouts/analytics/activity-calendar/` | Day-by-day activity heatmap and consistency rate |
+| GET | `/api/v1/workouts/analytics/volume-progression/` | Week-over-week tonnage volume and progressive overload trends |
 | GET/POST | `/api/v1/nutrition/daily/` | Daily nutrition log |
 | GET/POST | `/api/v1/nutrition/meals/` | Meal items |
 | POST | `/api/v1/nutrition/recommendations/` | BMR, TDEE & macro targets calculator |
 | GET | `/api/v1/nutrition/summary/daily/` | Daily consumed vs target macro summary |
+| GET/POST | `/api/v1/nutrition/hydration/` | Water intake tracking and dynamic hydration targets |
+| GET/POST | `/api/v1/nutrition/recommendations/timing/` | Pre, intra, and post workout nutrient timing guidelines |
 | GET/POST | `/api/v1/progress/measurements/` | Body measurements |
 | GET | `/api/v1/progress/analytics/trends/` | Body composition trend analysis and BMI |
+| GET | `/api/v1/progress/analytics/circumference/` | Body circumference measurement delta and symmetry tracker |
 | GET/POST | `/api/v1/progress/photos/` | Progress photos |
 | GET/POST | `/api/v1/progress/goals/` | Fitness goals |
 | POST | `/api/v1/progress/goals/evaluate/` | Auto-evaluate active fitness goals |
 | GET/POST | `/api/v1/progress/achievements/` | Achievements |
+| POST | `/api/v1/progress/achievements/sync/` | Evaluate milestones and unlock achievement badges |
 | GET | `/api/v1/progress/insights/` | Fitness insights |
-| GET | `/api/v1/health/` | Health check with database latency ping |
+| GET | `/api/v1/health/` | Health check with database latency ping and X-Process-Time-Ms |
+| GET | `/api/v1/export/userdata/` | Unified user data archive export for portability |
 
 ---
 
