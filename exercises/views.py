@@ -34,6 +34,30 @@ class ExerciseViewSet(viewsets.ReadOnlyModelViewSet):
         counts = Exercise.objects.values('muscle_group').annotate(count=Count('id')).order_by('muscle_group')
         return Response(list(counts))
 
+    @action(detail=False, methods=['get'])
+    def filter_matrix(self, request):
+        """GET /api/v1/exercises/filter_matrix/ — breakdown of catalog by muscle, equipment, difficulty."""
+        muscle_counts = list(Exercise.objects.values('muscle_group').annotate(count=Count('id')).order_by('muscle_group'))
+        equipment_counts = list(Exercise.objects.values('equipment').annotate(count=Count('id')).order_by('equipment'))
+        difficulty_counts = list(Exercise.objects.values('difficulty').annotate(count=Count('id')).order_by('difficulty'))
+        return Response({
+            'total_exercises': Exercise.objects.count(),
+            'by_muscle_group': muscle_counts,
+            'by_equipment': equipment_counts,
+            'by_difficulty': difficulty_counts,
+        })
+
+    @action(detail=False, methods=['get'])
+    def suggestions(self, request):
+        """GET /api/v1/exercises/suggestions/?q=... — quick search suggestions."""
+        q = request.query_params.get('q', '').strip()
+        if not q:
+            exercises = Exercise.objects.all()[:10]
+        else:
+            exercises = Exercise.objects.filter(name__icontains=q)[:10]
+        data = [{'id': e.id, 'name': e.name, 'muscle_group': e.muscle_group, 'equipment': e.equipment, 'difficulty': e.difficulty} for e in exercises]
+        return Response(data)
+
     @action(detail=True, methods=['get'])
     def history(self, request, pk=None):
         """GET /api/v1/exercises/{id}/history/ — return user's performance history for this exercise."""

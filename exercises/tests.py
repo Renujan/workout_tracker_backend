@@ -91,3 +91,17 @@ class ExerciseAPITestCase(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertTrue(any(item['muscle_group'] == 'Chest' for item in res.data))
 
+    def test_exercise_filter_matrix(self):
+        res = self.client.get('/api/v1/exercises/filter_matrix/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('total_exercises', res.data)
+        self.assertIn('by_muscle_group', res.data)
+        self.assertIn('by_equipment', res.data)
+        self.assertIn('by_difficulty', res.data)
+
+    def test_exercise_suggestions(self):
+        res = self.client.get('/api/v1/exercises/suggestions/?q=Bench')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(len(res.data) >= 1)
+        self.assertEqual(res.data[0]['name'], 'Bench Press')
+
