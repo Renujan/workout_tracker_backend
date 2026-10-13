@@ -318,6 +318,15 @@ class WorkoutAPITestCase(TestCase):
         self.assertGreater(res.data['estimated_calories_burned'], 0)
         self.assertEqual(res.data['duration_minutes'], 60)
 
+    # ── Rest Timer Calculator ─────────────────────────────────────────────────
+    def test_rest_timer_calculator(self):
+        res = self.client.get('/api/v1/workouts/calculator/rest-timer/?reps=5&exercise_type=compound')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['target_reps'], 5)
+        self.assertEqual(res.data['exercise_type'], 'compound')
+        self.assertEqual(res.data['recommended_rest_seconds'], 210)  # 180 + 30
+        self.assertEqual(res.data['training_goal'], 'Strength & Power')
+
 
 
 

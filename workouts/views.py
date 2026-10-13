@@ -18,7 +18,8 @@ from .services import (
     complete_workout_session, update_user_profile_stats,
     evaluate_and_unlock_achievements, calculate_one_rep_max,
     duplicate_workout_plan, calculate_estimated_calories_burned,
-    get_weekly_workout_summary, export_workout_history
+    get_weekly_workout_summary, export_workout_history,
+    calculate_recommended_rest_timer
 )
 
 
@@ -248,6 +249,21 @@ class WorkoutHistoryExportView(APIView):
             response['Content-Disposition'] = 'attachment; filename="workout_history.csv"'
             return response
         return Response(data, status=status.HTTP_200_OK)
+
+
+class RestTimerCalculatorView(APIView):
+    """GET /api/v1/workouts/calculator/rest-timer/?reps=8&exercise_type=compound — recommended rest time."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        reps = request.query_params.get('reps')
+        exercise_type = request.query_params.get('exercise_type', 'compound')
+        try:
+            r = int(reps) if reps is not None else 8
+        except (ValueError, TypeError):
+            return Response({'error': 'reps must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+        result = calculate_recommended_rest_timer(reps=r, exercise_type=exercise_type)
+        return Response(result, status=status.HTTP_200_OK)
 
 
 

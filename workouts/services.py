@@ -457,7 +457,50 @@ def export_workout_history(user, export_format='json'):
     return data, 'application/json'
 
 
+def calculate_recommended_rest_timer(reps=None, exercise_type='compound'):
+    """
+    Calculates recommended rest interval in seconds based on exercise type and rep ranges.
+    Strength (1-5 reps): 180s (3m)
+    Hypertrophy (6-12 reps): 90s (1m 30s)
+    Endurance (13+ reps): 45s
+    Compound exercises add +30s.
+    """
+    r = int(reps) if reps is not None else 8
+    is_compound = str(exercise_type).lower() in ['compound', 'true', '1']
 
+    if r <= 5:
+        base_rest = 180
+        min_rest = 120
+        max_rest = 300
+        goal = 'Strength & Power'
+        tip = 'Heavy loads require full phosphocreatine replenishment between sets.'
+    elif r <= 12:
+        base_rest = 90
+        min_rest = 60
+        max_rest = 120
+        goal = 'Hypertrophy'
+        tip = 'Moderate rest balances metabolic stress and mechanical tension.'
+    else:
+        base_rest = 45
+        min_rest = 30
+        max_rest = 60
+        goal = 'Muscular Endurance'
+        tip = 'Short rest trains muscle buffering capacity and stamina.'
 
+    if is_compound:
+        base_rest += 30
 
+    minutes = base_rest // 60
+    seconds = base_rest % 60
+    formatted = f"{minutes}m {seconds:02d}s" if minutes > 0 else f"{seconds}s"
 
+    return {
+        'target_reps': r,
+        'exercise_type': 'compound' if is_compound else 'isolation',
+        'recommended_rest_seconds': base_rest,
+        'recommended_rest_formatted': formatted,
+        'min_rest_seconds': min_rest,
+        'max_rest_seconds': max_rest,
+        'training_goal': goal,
+        'tip': tip,
+    }
