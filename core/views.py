@@ -32,3 +32,19 @@ class HealthCheckView(View):
                 'latency_ms': db_latency_ms,
             },
         }, status=200 if is_healthy else 503)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from .services import UserArchiveExportService
+
+
+class UserDataArchiveExportView(APIView):
+    """GET /api/v1/export/userdata/ — complete JSON data export archive for user portability."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data = UserArchiveExportService.export_all_user_data(request.user)
+        return Response(data, status=status.HTTP_200_OK)

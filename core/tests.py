@@ -22,3 +22,18 @@ class CoreMiddlewareAndHealthCheckTestCase(TestCase):
         # Value should be a valid float string
         duration = float(res.headers['X-Process-Time-Ms'])
         self.assertGreaterEqual(duration, 0.0)
+
+    def test_user_data_export_archive(self):
+        from django.contrib.auth.models import User
+        from rest_framework.test import APIClient
+        user = User.objects.create_user(username='exportuser', password='password123')
+        api_client = APIClient()
+        api_client.force_authenticate(user=user)
+
+        res = api_client.get('/api/v1/export/userdata/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('export_metadata', res.data)
+        self.assertEqual(res.data['export_metadata']['username'], 'exportuser')
+        self.assertIn('workouts', res.data)
+        self.assertIn('nutrition', res.data)
+        self.assertIn('progress', res.data)
