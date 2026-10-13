@@ -97,3 +97,28 @@ class AuthAPITestCase(TestCase):
         res = self.client.post(url, payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
+    # ── Fitness Preferences ──────────────────────────────────────────────────
+    def test_authenticated_user_can_get_and_update_preferences(self):
+        from users.models import UserProfile
+        user = User.objects.create_user(username='prefuser', password='password123')
+        UserProfile.objects.create(user=user)
+        self.client.force_authenticate(user=user)
+        url = '/api/v1/users/preferences/'
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['unit_system'], 'metric')
+
+        update_res = self.client.post(url, {'unit_system': 'imperial', 'target_weekly_workouts': 5}, format='json')
+        self.assertEqual(update_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_res.data['unit_system'], 'imperial')
+        self.assertEqual(update_res.data['weight_unit'], 'lbs')
+        user.profile.refresh_from_db()
+        self.assertEqual(user.profile.weekly_workouts_target, 5)
+
+    def test_unit_conversion_service(self):
+        from users.services import UserPreferencesService
+        lbs = UserPreferencesService.convert_weight(100.0, 'kg', 'lbs')
+        self.assertAlmostEqual(lbs, 220.46, places=1)
+        kg = UserPreferencesService.convert_weight(220.46, 'lbs', 'kg')
+        self.assertAlmostEqual(kg, 100.0, places=1)
+

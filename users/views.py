@@ -90,4 +90,33 @@ class PasswordChangeView(APIView):
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response({'detail': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+from .services import UserPreferencesService
 
+
+class UserPreferencesView(APIView):
+    """GET/POST /api/v1/users/preferences/ — retrieve or update user fitness preferences."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        prefs = UserPreferencesService.get_user_preferences(request.user)
+        return Response(prefs, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        unit_system = request.data.get('unit_system', 'metric')
+        target_workouts = request.data.get('target_weekly_workouts')
+        if target_workouts is not None:
+            try:
+                target_workouts = int(target_workouts)
+                if 1 <= target_workouts <= 7:
+                    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                    profile.weekly_workouts_target = target_workouts
+                    profile.save(update_fields=['weekly_workouts_target'])
+            except (ValueError, TypeError):
+                return Response({'detail': 'Invalid target_weekly_workouts value.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        prefs = UserPreferencesService.get_user_preferences(request.user)
+        prefs['unit_system'] = unit_system
+        if unit_system == 'imperial':
+            prefs['weight_unit'] = 'lbs'
+            prefs['distance_unit'] = 'miles'
+        return Response(prefs, status=status.HTTP_200_OK)
