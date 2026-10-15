@@ -40,10 +40,20 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        username_or_email = serializer.validated_data['username']
         user = authenticate(
-            username=serializer.validated_data['username'],
+            username=username_or_email,
             password=serializer.validated_data['password'],
         )
+        if not user and '@' in username_or_email:
+            try:
+                matched_user = User.objects.get(email__iexact=username_or_email)
+                user = authenticate(
+                    username=matched_user.username,
+                    password=serializer.validated_data['password'],
+                )
+            except (User.DoesNotExist, User.MultipleObjectsReturned):
+                user = None
         if not user:
             return Response({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
         refresh = RefreshToken.for_user(user)
